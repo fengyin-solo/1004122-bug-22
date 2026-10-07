@@ -29,7 +29,11 @@
       </tbody>
     </table>
     <footer class="page-foot">
-      <span>数据保存在本机浏览器里，换浏览器或清缓存会回到示例数据</span>
+      <span v-if="errorMessage" class="error-text">
+        {{ errorMessage }}
+        <button class="link" type="button" @click="refresh">重试</button>
+      </span>
+      <span v-else>数据保存在本机浏览器里，换浏览器或清缓存会回到示例数据</span>
     </footer>
   </section>
 </template>
@@ -42,11 +46,17 @@ import type { OverviewResult } from '@/data/types'
 
 const cards = ref<OverviewResult['cards']>([])
 const moduleRows = ref<OverviewResult['modules']>([])
+const errorMessage = ref('')
 
 function refresh() {
-  const payload = loadOverview()
-  cards.value = payload.cards
-  moduleRows.value = payload.modules
+  errorMessage.value = ''
+  try {
+    const payload = loadOverview()
+    cards.value = payload.cards
+    moduleRows.value = payload.modules
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : '概览数据读取失败'
+  }
 }
 
 onMounted(refresh)

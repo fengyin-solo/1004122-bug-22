@@ -80,12 +80,15 @@ import {
   runAction as applyAction,
 } from '@/api/local-service'
 import type { EntryRow } from '@/data/types'
+import { useSessionStore } from '@/stores/session'
 
 const meta = moduleMeta('flight_ops')
 const columns = ["航班号", "机尾号", "计划到港", "实际到港", "计划离港", "预计离港", "保障节点", "保障状态"]
 const actions = ["启动保障", "确认就绪", "标记延误"]
 const statuses = ["待保障", "保障中", "已就绪", "已延误"]
 const stats = [{"label": "待保障航班", "value": 0}, {"label": "保障中航班", "value": 0}, {"label": "延误航班", "value": 0}]
+
+const session = useSessionStore()
 
 const rows = ref<EntryRow[]>([])
 const total = ref(0)
@@ -114,7 +117,7 @@ function openCreate() {
 
 function runAction(action: string, row: EntryRow) {
   errorMessage.value = ''
-  const result = applyAction(meta.key, Number(row.id), action)
+  const result = applyAction(meta.key, Number(row.id), action, session.actionContext)
   if (!result.ok) {
     errorMessage.value = result.message
     return

@@ -12,6 +12,8 @@ export const MODULES: ModuleMeta[] = [
     actions: ["分配机位", "确认占用", "释放机位"],
     actionTargets: {"分配机位": "已分配", "确认占用": "占用中", "释放机位": "已释放"},
     metrics: ["空闲机位", "占用中机位", "已分配机位"],
+    requiredFields: ["所属航站楼"],
+    linkFields: ["匹配航班"],
   },
   {
     key: "bridge",
