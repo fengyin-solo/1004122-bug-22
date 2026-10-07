@@ -43,8 +43,11 @@
       </thead>
       <tbody>
         <tr v-for="row in rows" :key="String(row.id)">
-          <td v-for="column in columns" :key="column">{{ row[column] ?? '—' }}</td>
-          <td>{{ row.status }}</td>
+          <td v-for="column in columns" :key="column">{{ cellText(row, column) }}</td>
+          <td>
+            {{ row.status }}
+            <span v-if="isAbnormal(row)" class="abnormal-tag">异常</span>
+          </td>
           <td class="row-actions">
             <button
               v-for="action in actions"
@@ -57,7 +60,13 @@
             </button>
           </td>
         </tr>
-        <tr v-if="!rows.length">
+        <tr v-if="!rows.length && loadFailed">
+          <td :colspan="columns.length + 2" class="empty-state">
+            机位分配列表读取失败，筛选条件已保留
+            <button class="link" type="button" @click="reload">重试</button>
+          </td>
+        </tr>
+        <tr v-else-if="!rows.length">
           <td :colspan="columns.length + 2" class="empty-state">暂无机位分配数据，可先登记机位分配</td>
         </tr>
       </tbody>
@@ -75,6 +84,7 @@ import { computed, onMounted, ref } from 'vue'
 
 import {
   downloadEntries,
+  isRowAbnormal,
   listEntries,
   moduleMeta,
   runAction as applyAction,
@@ -90,6 +100,7 @@ const stats = [{"label": "空闲机位", "value": 0}, {"label": "占用中机位
 const rows = ref<EntryRow[]>([])
 const total = ref(0)
 const errorMessage = ref('')
+const loadFailed = ref(false)
 const filters = ref<Record<string, string>>({})
 const filterFields = columns.slice(0, 3)
 const statusSummary = computed(() =>
@@ -98,6 +109,16 @@ const statusSummary = computed(() =>
     count: rows.value.filter((row) => String(row.status) === status).length,
   })),
 )
+
+function cellText(row: EntryRow, column: string): string {
+  const value = row[column]
+  // 缺归属等空值统一给占位，不留空白
+  return value === undefined || value === null || String(value).trim() === '' ? '—' : String(value)
+}
+
+function isAbnormal(row: EntryRow): boolean {
+  return isRowAbnormal(meta.key, row)
+}
 
 function resetFilters() {
   filters.value = {}
@@ -128,7 +149,10 @@ function reload() {
     const payload = listEntries(meta.key, filters.value)
     rows.value = payload.items
     total.value = payload.total
+    loadFailed.value = false
   } catch (error) {
+    // 读取失败保留已加载的记录和当前筛选，只标记失败，允许重试
+    loadFailed.value = true
     errorMessage.value = error instanceof Error ? error.message : '机位分配列表读取失败'
   }
 }
